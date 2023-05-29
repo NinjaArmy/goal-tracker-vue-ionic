@@ -1,0 +1,7 @@
+{
+  "name": "appwrite-hackathon",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
