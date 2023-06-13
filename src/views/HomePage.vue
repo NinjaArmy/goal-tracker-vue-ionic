@@ -2,33 +2,45 @@
   <ion-page class="flex ion-justify-content-center ion-align-items-center">
     <ion-header :translucent="true">
       <ion-toolbar>
-        <ion-title class="ion-text-center">Goal Tracker</ion-title>
+        <template v-if="!currentUser">
+          <ion-title class="ion-text-center">Goal Tracker</ion-title>
+        </template>
+        <template v-else>
+          <ion-title class="ion-text-center"> Goals from: {{ currentUser?.name }}</ion-title>
+        </template>
       </ion-toolbar>
     </ion-header>
 
+
     <ion-content class="container ion-padding" :fullscreen="true">
-      <ion-grid>
-        <ion-row>
-          <ion-col size="12">
-            <a target="_blank" href="https://appwrite.io/">
-              <img src="@/assets/images/appwrite.png" />
-            </a>
-          </ion-col>
-          <ion-col class="ion-text-center" size="12">
-            <ion-icon :icon="close"></ion-icon>
-          </ion-col>
-          <ion-col class="ion-text-center" size="12">
-            <a target="_blank" href="https://hashnode.com/">
-              <img src="@/assets/images/hashnode.svg" />
-            </a>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      <p class="flex ion-text-center ion-justify-content-center ion-align-items-center">
-        Simple Goal-Tracker built with Appwrite
-        <img width="40" height="40" src="@/assets/images/appwrite.svg" />, Vue <img width="30" height="30"
-          src="@/assets/images/vue.svg" /> and ionic<span><ion-icon size="large" :icon="logoIonic"></ion-icon></span>
-      </p>
+      <template v-if="!currentUser">
+        <div>
+          <ion-grid>
+            <ion-row>
+              <ion-col size="12">
+                <a target="_blank" href="https://appwrite.io/">
+                  <img src="@/assets/images/appwrite.png" />
+                </a>
+              </ion-col>
+              <ion-col class="ion-text-center" size="12">
+                <ion-icon :icon="close"></ion-icon>
+              </ion-col>
+              <ion-col class="ion-text-center" size="12">
+                <a target="_blank" href="https://hashnode.com/">
+                  <img src="@/assets/images/hashnode.svg" />
+                </a>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+
+          <p class="flex ion-text-center ion-justify-content-center ion-align-items-center">
+            Simple Goal-Tracker built with Appwrite
+            <img width="40" height="40" src="@/assets/images/appwrite.svg" />, Vue <img width="30" height="30"
+              src="@/assets/images/vue.svg" /> and ionic<span><ion-icon size="large" :icon="logoIonic"></ion-icon></span>
+          </p>
+        </div>
+      </template>
+
       <template v-if="!currentUser">
         <ion-grid>
           <ion-row>
@@ -39,12 +51,24 @@
         </ion-grid>
       </template>
       <template v-else>
-        {{ currentUser }}
-        <ion-button @click="doLogout">Logout</ion-button>
+        <div>
+          <ion-button class="ion-float-left" @click="addItemIsOpen = true">Add Goal</ion-button>
+          <ion-button class="ion-float-right" @click="doLogout">Logout</ion-button>
+        </div>
+        <div style="clear: both">
+          <div style="margin-top: 4.75rem">
+            <div v-for="item in documents">
+              <p>{{ item }}</p>
+            </div>
+          </div>
+        </div>
       </template>
 
       <!-- CREATE ACCOUNT MODAL  -->
       <create-account-modal :isVisible="createAcctIsOpen" @onClose="doCreateAccount"></create-account-modal>
+
+      <!-- CREATE GOAL MODAL  -->
+      <add-goal-modal :isVisible="addItemIsOpen" @onClose="doAddItem"></add-goal-modal>
 
       <!-- LOGIN MODAL  -->
       <login-modal :isVisible="loginIsOpen" @onClose="doLogin"></login-modal>
@@ -65,25 +89,56 @@ import {
   IonRow,
   IonCol,
   IonIcon,
+  onIonViewWillEnter
 } from "@ionic/vue";
 import { ref } from "vue";
 import { close, logoIonic } from 'ionicons/icons';
 
 import { useAppwriteAccount } from "../composables/useAppwriteAccount";
+import { useAppwriteDB } from "../composables/useAppwriteDB";
+
 import CreateAccountModal from "../components/CreateAccountModal.vue";
+import AddGoalModal from "../components/AddGoalModal.vue";
 import LoginModal from "../components/LoginModal.vue"
 
 const { createAccount, getCurrentUser, login, logout } = useAppwriteAccount();
-const currentUser = ref(null);
+const { doCreateDocument, doListDocuments, documents } = useAppwriteDB();
+const currentUser = ref();
 
 const createAcctIsOpen = ref(false);
 const loginIsOpen = ref(false);
+const addItemIsOpen = ref(false);
+
+
+onIonViewWillEnter(async () => {
+  if (currentUser.value) {
+    await doListDocuments();
+  }
+
+})
 
 // check for user at startup
 getCurrentUser().then(
-  (user) => (currentUser.value = user),
+  async (user) => {
+    currentUser.value = user;
+    await doListDocuments();
+  },
   (error) => { }
 );
+
+const doAddItem = async (payload: null | { goal: string; description?: string }) => {
+  addItemIsOpen.value = false;
+  if (payload) {
+    try {
+      const resp = await doCreateDocument(payload, currentUser?.value.$id);
+      if (resp.error) throw (resp.error);
+      console.log(resp.data);
+    } catch (error) {
+      errorAlert("Error Creating New Goal", (error as Error).message);
+    }
+  }
+
+};
 
 const doLogin = async (payload: null | { email: string; password: string }) => {
   loginIsOpen.value = false;
