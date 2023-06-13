@@ -56,11 +56,20 @@
           <ion-button class="ion-float-right" @click="doLogout">Logout</ion-button>
         </div>
         <div style="clear: both">
-          <div style="margin-top: 4.75rem">
-            <div v-for="item in documents">
-              <p>{{ item }}</p>
-            </div>
-          </div>
+          <ion-list style="margin-top: 4.75rem">
+            <ion-item-sliding v-for="item in documents">
+              <ion-item>
+                <ion-label>
+                  {{ item.goal }}
+                  <p>{{ item.description }}</p>
+                </ion-label>
+              </ion-item>
+              <ion-item-options>
+                <ion-item-option>Achieved</ion-item-option>
+                <ion-item-option color="danger">Delete</ion-item-option>
+              </ion-item-options>
+            </ion-item-sliding>
+          </ion-list>
         </div>
       </template>
 
@@ -89,7 +98,13 @@ import {
   IonRow,
   IonCol,
   IonIcon,
-  onIonViewWillEnter
+  onIonViewWillEnter,
+  IonList,
+  IonLabel,
+  IonItem,
+  IonItemOptions,
+  IonItemOption,
+  IonItemSliding
 } from "@ionic/vue";
 import { ref } from "vue";
 import { close, logoIonic } from 'ionicons/icons';
